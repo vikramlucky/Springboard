@@ -93,10 +93,39 @@ the guest user's ID is always 0. Include in your output the name of the
 facility, the name of the member formatted as a single column, and the cost.
 Order by descending cost, and do not use any subqueries. */
 
+select "name" as "facilityname", concat(firstname, ' ', surname) as personname, case when b.memid=0 then guestcost*slots
+else membercost*slots end as cost, bookid
+from Bookings as b
+inner join Facilities as f on b.facid=f.facid
+inner join Members as m on b.memid=m.memid
+where starttime>='2012-09-14' and starttime<'2012-09-15' and 
+(case when b.memid=0 then guestcost*slots
+else membercost*slots end)>30
+order by cost desc
 
 /* Q9: This time, produce the same result as in Q8, but using a subquery. */
-
+select "name" as "facilityname", concat(firstname, ' ', surname) as personname, cost, bookid  
+from
+(select memid, "name", guestcost*slots as "cost", bookid
+from Bookings as b
+inner join Facilities as f on b.facid=f.facid
+where starttime>='2012-09-14' and starttime<'2012-09-15' and memid=0 and guestcost*slots>30
+Union all
+select memid, "name", membercost*slots as "cost", bookid
+from Bookings as b
+inner join Facilities as f on b.facid=f.facid
+where starttime>='2012-09-14' and starttime<'2012-09-15' and memid<>0 and membercost*slots>30) as cost30
+inner join Members on cost30.memid = Members.memid
+order by cost desc
 
 /* Q10: Produce a list of facilities with a total revenue less than 1000.
 The output of facility name and total revenue, sorted by revenue. Remember
 that there's a different cost for guests and members! */
+select "name",
+sum(case when memid=0 then guestcost*slots
+else membercost*slots end) as revenue
+from Bookings as b
+inner join Facilities as f on b.facid=f.facid
+group by "name"
+having sum(case when memid=0 then guestcost*slots
+else membercost*slots end)<1000
